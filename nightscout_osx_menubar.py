@@ -3,7 +3,7 @@ import os
 import sys
 import traceback
 import webbrowser
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from datetime import datetime
 
 import requests
@@ -24,16 +24,16 @@ REQUEST_TIMEOUT_SECONDS = 2
 ################################################################################
 # Display options
 
-MENUBAR_TEXT = u"{sgv} {direction} {delta} [{time_ago}]"
-MENU_ITEM_TEXT = u"{sgv} {direction} {delta} [{time_ago}]"
+MENUBAR_TEXT = "{sgv} {direction} {delta} [{time_ago}]"
+MENU_ITEM_TEXT = "{sgv} {direction} {delta} [{time_ago}]"
 
 def time_ago(seconds):
     if seconds >= 3600:
-        return "%sh" % (seconds / 3600)
+        return "%sh" % round((seconds / 3600))
     elif seconds >= 60:
-        return "%sm" % (seconds / 60)
+        return "%sm" % round((seconds / 60))
     else:
-        return "%ss" % seconds
+        return "%ss" % round(seconds)
 
 ################################################################################
 
@@ -118,7 +118,7 @@ def post_history_menu_options():
 
 def get_entries(retries=0, last_exception=None):
     if retries >= MAX_BAD_REQUEST_ATTEMPTS:
-        print "Retried too many times: %s" % last_exception
+        print("Retried too many times: %s" % last_exception)
         raise NightscoutException(last_exception)
 
     try:
@@ -130,12 +130,12 @@ def get_entries(retries=0, last_exception=None):
             # Don't let bad connectivity cause the app to freeze
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
-    except requests.exceptions.Timeout, e:
+    except requests.exceptions.Timeout as e:
         # Don't retry timeouts, since the app is unresponsive while a request is in progress,
         # and a new request will be made in UPDATE_FREQUENCY_SECONDS seconds anyway.
-        print "Timed out: %s" % repr(e)
+        print("Timed out: %s" % repr(e))
         raise NightscoutException(repr(e))
-    except requests.exceptions.RequestException, e:
+    except requests.exceptions.RequestException as e:
         return get_entries(retries + 1, repr(e))
 
     if resp.status_code != 200:
@@ -161,17 +161,17 @@ def seconds_ago(timestamp):
 
 def get_direction(entry):
     return {
-        'DoubleUp': u'⇈',
-        'SingleUp': u'↑',
-        'FortyFiveUp': u'↗',
-        'Flat': u'→',
-        'FortyFiveDown': u'↘',
-        'SingleDown': u'↓',
-        'DoubleDown': u'⇊',
+        'DoubleUp': '⇈',
+        'SingleUp': '↑',
+        'FortyFiveUp': '↗',
+        'Flat': '→',
+        'FortyFiveDown': '↘',
+        'SingleDown': '↓',
+        'DoubleDown': '⇊',
     }.get(entry.get('direction'), '-')
 
 def get_delta(last, second_to_last):
-    return ('+' if last['sgv'] >= second_to_last['sgv'] else u'−') + str(abs(maybe_convert_units(last['sgv'] - second_to_last['sgv'])))
+    return ('+' if last['sgv'] >= second_to_last['sgv'] else '−') + str(abs(maybe_convert_units(last['sgv'] - second_to_last['sgv'])))
 
 def get_menubar_text(entries):
     bgs = filter_bgs(entries)
@@ -205,16 +205,16 @@ def update_data(sender):
     try:
         try:
             entries = get_entries()
-        except NightscoutException, e:
+        except NightscoutException as e:
             if config.get_host():
                 update_menu("<?>", [e.message[:100]])
             else:
                 update_menu("<Need settings>", [])
         else:
             update_menu(get_menubar_text(entries), get_history_menu_items(entries))
-    except Exception, e:
-        print "Nightscout data: " + simplejson.dumps(entries)
-        print repr(e)
+    except Exception as e:
+        print("Nightscout data: " + simplejson.dumps(entries))
+        print(repr(e))
         _, _, tb = sys.exc_info()
         traceback.print_tb(tb)
         update_menu("<!>", [repr(e)[:100]])
